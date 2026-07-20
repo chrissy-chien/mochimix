@@ -9,6 +9,8 @@ Spotify.
 a trademark of Spotify AB. This is a personal-use project, not a public
 App Store release.
 
+Licensed under the [MIT License](LICENSE).
+
 ---
 
 ## 1. App overview
@@ -338,6 +340,11 @@ URI (step 6 below), this scheme must be updated to match.
    and create an app (or use an existing one).
 2. Note the **Client ID** shown on the app's overview page.
 3. Open **Settings** on that app and add a **Redirect URI** (step 6).
+4. New apps start in **Development Mode**, which only allows explicitly
+   allow-listed Spotify accounts to log in (up to 25). Go to **User
+   Management** on your app's dashboard page and add your own Spotify
+   account (and anyone else you want to be able to log in) — otherwise
+   login will fail even with a correct Client ID/redirect URI.
 
 ### 6. Spotify redirect URI
 
@@ -370,13 +377,16 @@ history and playlist/album/artist metadata.
 
 ### 8. Where the Spotify Client ID lives
 
-`Shared/Services/SpotifyConfig.swift`, the `clientID` constant. This value
-**is not a secret** — with the PKCE flow this app uses, there is no client
-secret at all (see "Privacy/security notes" below), so it's safe for the
-Client ID to live directly in source.
+`Shared/Services/SpotifyConfig.swift`, the `clientID` constant — it ships
+as the placeholder `"YOUR_SPOTIFY_CLIENT_ID"` and **must** be replaced with
+your own Client ID from step 5 before login will work.
 
-If you're using your own Spotify Developer app, replace this constant with
-your own app's Client ID.
+This value **is not a secret** — with the PKCE flow this app uses, there is
+no client secret at all (see "Privacy/security notes" below), so it would
+be technically safe to commit a real one. It's kept as a placeholder
+instead because Spotify's Development Mode allow-list (step 5.4) means a
+real ID checked into this repo wouldn't let anyone else log in anyway —
+every person building this needs their own Spotify app registration.
 
 ### 9. Running on Simulator
 

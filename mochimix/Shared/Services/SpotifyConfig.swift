@@ -10,17 +10,24 @@ import Foundation
 /// Central place for the constants that tie this app to a specific Spotify
 /// Developer Dashboard app registration and to this project's App Group.
 ///
-/// The client ID below is NOT a secret. With the PKCE flow this app uses
-/// (see SpotifyAuthService), there is no client secret at all -- PKCE was
+/// The client ID below is NOT a secret -- with the PKCE flow this app uses
+/// (see SpotifyAuthService), there is no client secret at all. PKCE was
 /// designed for exactly this situation (a public client, like a mobile app,
-/// that can't safely keep a secret). It's fine for this value to live in
-/// source, even in a personal/private repo.
+/// that can't safely keep a secret), so it would be technically safe to
+/// commit a real value here. It's still left as a placeholder rather than a
+/// real ID, though: Spotify apps in Development Mode only let explicitly
+/// allow-listed users log in at all, so a real ID checked into a public repo
+/// wouldn't actually let anyone else log in anyway -- each person building
+/// this needs to register their own Spotify app and drop their own client
+/// ID in here (see README setup guide).
 // `nonisolated` here because these are just plain constants -- there's no
 // mutable state to protect, so there's no reason for the project-wide
 // "default to MainActor" setting to force callers on other threads/actors
 // (e.g. background fetch code) to hop onto the main actor just to read a
 // URL or a number.
 nonisolated enum SpotifyConfig {
+    /// Replace with your own Spotify Developer Dashboard app's Client ID --
+    /// see the README's "Spotify Developer Dashboard setup" section.
     static let clientID = "YOUR_SPOTIFY_CLIENT_ID"
 
     /// Must exactly match both:
