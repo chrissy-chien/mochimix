@@ -377,16 +377,32 @@ history and playlist/album/artist metadata.
 
 ### 8. Where the Spotify Client ID lives
 
-`Shared/Services/SpotifyConfig.swift`, the `clientID` constant — it ships
-as the placeholder `"YOUR_SPOTIFY_CLIENT_ID"` and **must** be replaced with
-your own Client ID from step 5 before login will work.
+In an untracked file you create yourself: `Shared/Services/Secrets.swift`
+(this exact path/filename is already covered by `.gitignore`, so it's safe
+from accidental commits). `SpotifyConfig.swift`'s `clientID` constant reads
+from it, so the project won't compile until this file exists. Create it
+with:
+
+```swift
+import Foundation
+
+nonisolated enum Secrets {
+    static let spotifyClientID = "YOUR_SPOTIFY_CLIENT_ID"
+}
+```
+
+...replacing `YOUR_SPOTIFY_CLIENT_ID` with your own Client ID from step 5.
+Since `Shared/` is one of this project's synchronized folders (see
+"Requirements" above), Xcode picks up the new file automatically — no
+manual "add to target" step needed.
 
 This value **is not a secret** — with the PKCE flow this app uses, there is
 no client secret at all (see "Privacy/security notes" below), so it would
-be technically safe to commit a real one. It's kept as a placeholder
-instead because Spotify's Development Mode allow-list (step 5.4) means a
-real ID checked into this repo wouldn't let anyone else log in anyway —
-every person building this needs their own Spotify app registration.
+be technically safe to commit a real one directly in `SpotifyConfig.swift`.
+It's kept out of git entirely instead because Spotify's Development Mode
+allow-list (step 5.4) means a real ID checked into this repo wouldn't let
+anyone else log in anyway — every person building this needs their own
+Spotify app registration and their own local `Secrets.swift`.
 
 ### 9. Running on Simulator
 
