@@ -6,14 +6,81 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A1BCF0B82FFF003600C1E3E9 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1BCF0B72FFF003500C1E3E9 /* WidgetKit.framework */; };
+		A1BCF0BA2FFF003600C1E3E9 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1BCF0B92FFF003600C1E3E9 /* SwiftUI.framework */; };
+		A1BCF0CB2FFF003800C1E3E9 /* mochimix-widgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A1BCF0B52FFF003500C1E3E9 /* mochimix-widgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A1BCF0C92FFF003800C1E3E9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1BCF09B2FFEFFE300C1E3E9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1BCF0B42FFF003500C1E3E9;
+			remoteInfo = "mochimix-widgetExtension";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A1BCF0D02FFF003800C1E3E9 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1BCF0CB2FFF003800C1E3E9 /* mochimix-widgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		A1BCF0A32FFEFFE300C1E3E9 /* mochimix.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mochimix.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1BCF0B52FFF003500C1E3E9 /* mochimix-widgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "mochimix-widgetExtension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1BCF0B72FFF003500C1E3E9 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		A1BCF0B92FFF003600C1E3E9 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		A1BCF0D32FFF017100C1E3E9 /* mochimix-widgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "mochimix-widgetExtension.entitlements"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1BCF0CC2FFF003800C1E3E9 /* Exceptions for "mochimix-widget" folder in "mochimix-widgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A1BCF0B42FFF003500C1E3E9 /* mochimix-widgetExtension */;
+		};
+		A1BCF0D52FFF01AC00C1E3E9 /* Exceptions for "mochimix" folder in "mochimix" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A1BCF0A22FFEFFE300C1E3E9 /* mochimix */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		408AF38B09F144FA8E607870 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		A1BCF0A52FFEFFE300C1E3E9 /* mochimix */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1BCF0D52FFF01AC00C1E3E9 /* Exceptions for "mochimix" folder in "mochimix" target */,
+			);
 			path = mochimix;
+			sourceTree = "<group>";
+		};
+		A1BCF0BB2FFF003600C1E3E9 /* mochimix-widget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1BCF0CC2FFF003800C1E3E9 /* Exceptions for "mochimix-widget" folder in "mochimix-widgetExtension" target */,
+			);
+			path = "mochimix-widget";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -26,13 +93,26 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1BCF0B22FFF003500C1E3E9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1BCF0BA2FFF003600C1E3E9 /* SwiftUI.framework in Frameworks */,
+				A1BCF0B82FFF003600C1E3E9 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		A1BCF09A2FFEFFE300C1E3E9 = {
 			isa = PBXGroup;
 			children = (
+				A1BCF0D32FFF017100C1E3E9 /* mochimix-widgetExtension.entitlements */,
+				408AF38B09F144FA8E607870 /* Shared */,
 				A1BCF0A52FFEFFE300C1E3E9 /* mochimix */,
+				A1BCF0BB2FFF003600C1E3E9 /* mochimix-widget */,
+				A1BCF0B62FFF003500C1E3E9 /* Frameworks */,
 				A1BCF0A42FFEFFE300C1E3E9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,8 +121,18 @@
 			isa = PBXGroup;
 			children = (
 				A1BCF0A32FFEFFE300C1E3E9 /* mochimix.app */,
+				A1BCF0B52FFF003500C1E3E9 /* mochimix-widgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A1BCF0B62FFF003500C1E3E9 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A1BCF0B72FFF003500C1E3E9 /* WidgetKit.framework */,
+				A1BCF0B92FFF003600C1E3E9 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -55,12 +145,15 @@
 				A1BCF09F2FFEFFE300C1E3E9 /* Sources */,
 				A1BCF0A02FFEFFE300C1E3E9 /* Frameworks */,
 				A1BCF0A12FFEFFE300C1E3E9 /* Resources */,
+				A1BCF0D02FFF003800C1E3E9 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A1BCF0CA2FFF003800C1E3E9 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				408AF38B09F144FA8E607870 /* Shared */,
 				A1BCF0A52FFEFFE300C1E3E9 /* mochimix */,
 			);
 			name = mochimix;
@@ -69,6 +162,29 @@
 			productName = mochimix;
 			productReference = A1BCF0A32FFEFFE300C1E3E9 /* mochimix.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A1BCF0B42FFF003500C1E3E9 /* mochimix-widgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1BCF0CD2FFF003800C1E3E9 /* Build configuration list for PBXNativeTarget "mochimix-widgetExtension" */;
+			buildPhases = (
+				A1BCF0B12FFF003500C1E3E9 /* Sources */,
+				A1BCF0B22FFF003500C1E3E9 /* Frameworks */,
+				A1BCF0B32FFF003500C1E3E9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				408AF38B09F144FA8E607870 /* Shared */,
+				A1BCF0BB2FFF003600C1E3E9 /* mochimix-widget */,
+			);
+			name = "mochimix-widgetExtension";
+			packageProductDependencies = (
+			);
+			productName = "mochimix-widgetExtension";
+			productReference = A1BCF0B52FFF003500C1E3E9 /* mochimix-widgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -81,6 +197,9 @@
 				LastUpgradeCheck = 2660;
 				TargetAttributes = {
 					A1BCF0A22FFEFFE300C1E3E9 = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					A1BCF0B42FFF003500C1E3E9 = {
 						CreatedOnToolsVersion = 26.6;
 					};
 				};
@@ -100,12 +219,20 @@
 			projectRoot = "";
 			targets = (
 				A1BCF0A22FFEFFE300C1E3E9 /* mochimix */,
+				A1BCF0B42FFF003500C1E3E9 /* mochimix-widgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A1BCF0A12FFEFFE300C1E3E9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1BCF0B32FFF003500C1E3E9 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +249,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1BCF0B12FFF003500C1E3E9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1BCF0CA2FFF003800C1E3E9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1BCF0B42FFF003500C1E3E9 /* mochimix-widgetExtension */;
+			targetProxy = A1BCF0C92FFF003800C1E3E9 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A1BCF0AC2FFEFFE400C1E3E9 /* Debug */ = {
@@ -249,15 +391,20 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = mochimix/mochimix.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 43G2547RV3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = mochimix/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = mochimix;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -280,15 +427,20 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = mochimix/mochimix.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 43G2547RV3;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = mochimix/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = mochimix;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -299,6 +451,68 @@
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A1BCF0CE2FFF003800C1E3E9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = "mochimix-widgetExtension.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 43G2547RV3;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "mochimix-widget/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "mochimix-widget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "meowmeow.mochimix.mochimix-widget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1BCF0CF2FFF003800C1E3E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = "mochimix-widgetExtension.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 43G2547RV3;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "mochimix-widget/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "mochimix-widget";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "meowmeow.mochimix.mochimix-widget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -323,6 +537,15 @@
 			buildConfigurations = (
 				A1BCF0AF2FFEFFE400C1E3E9 /* Debug */,
 				A1BCF0B02FFEFFE400C1E3E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1BCF0CD2FFF003800C1E3E9 /* Build configuration list for PBXNativeTarget "mochimix-widgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1BCF0CE2FFF003800C1E3E9 /* Debug */,
+				A1BCF0CF2FFF003800C1E3E9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -1,0 +1,37 @@
+# Xcode / iOS
+#
+build/
+DerivedData/
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+*.hmap
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Xcode user-specific / local state (never share this between machines)
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+*.xcworkspace/xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# CocoaPods (not currently used, ignored defensively)
+Pods/
+
+# macOS
+.DS_Store
+
+# Secrets / local environment files (never commit real credentials)
+.env
+.env.local
+*.pem
+*.p12
+*.key
+*.mobileprovision
+Secrets.swift
+Secrets.xcconfig

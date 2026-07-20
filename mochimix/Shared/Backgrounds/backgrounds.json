@@ -1,0 +1,57 @@
+[
+  {
+    "id": "bg-black-star",
+    "image": "bg-black-star",
+    "color": "white"
+  },
+  {
+    "id": "bg-black-wave",
+    "image": "bg-black-wave",
+    "color": "white"
+  },
+  {
+    "id": "bg-blue-gradient",
+    "image": "bg-blue-gradient",
+    "color": "white"
+  },
+  {
+    "id": "bg-brown-gradient",
+    "image": "bg-brown-gradient",
+    "color": "white"
+  },
+  {
+    "id": "bg-cyber-gradient",
+    "image": "bg-cyber-gradient",
+    "color": "black"
+  },
+  {
+    "id": "bg-pastel-rainbow",
+    "image": "bg-pastel-rainbow",
+    "color": "black"
+  },
+  {
+    "id": "bg-peony-abstract",
+    "image": "bg-peony-abstract",
+    "color": "black"
+  },
+  {
+    "id": "bg-purple-gradient",
+    "image": "bg-purple-gradient",
+    "color": "white"
+  },
+  {
+    "id": "bg-rainbow",
+    "image": "bg-rainbow",
+    "color": "white"
+  },
+  {
+    "id": "bg-star-gradient",
+    "image": "bg-star-gradient",
+    "color": "black"
+  },
+  {
+      "id": "bg-sunset-gradient",
+      "image": "bg-sunset-gradient",
+      "color": "black"
+  }
+]
