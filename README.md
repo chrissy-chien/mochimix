@@ -523,28 +523,3 @@ With the scopes listed above, mochimix can read (but never write/modify):
 
 It never posts, follows, modifies playlists, or takes any write action
 against your Spotify account.
-
-### Secrets
-
-- This app's OAuth flow (Authorization Code **with PKCE**) never uses a
-  client secret at all — that's the entire point of PKCE for a public
-  client like a mobile app, where nothing baked into the binary can
-  actually stay secret. The Spotify **Client ID** in
-  `Shared/Services/SpotifyConfig.swift` is not sensitive and is safe to
-  keep in source, but if you fork this project, **do not** add a real
-  client secret, API key, or any other credential directly into source —
-  there currently isn't one, and it should stay that way.
-- Access/refresh tokens are stored in the iOS Keychain at runtime, never
-  written to source, logs, or the repo.
-
-### Repository hygiene
-
-- Build products, `DerivedData/`, and Xcode's per-developer user state
-  (`xcuserdata/`, `*.xcuserstate`) should never be committed — they're
-  large, machine-specific, and regenerate automatically. This repo's
-  `.gitignore` excludes them.
-- `.DS_Store` files should never be committed.
-- If you ever introduce real secrets (a different OAuth flow, a signing
-  key, an internal API key, etc.), keep them out of git entirely — use an
-  untracked local config file or the Keychain, and add the relevant
-  pattern to `.gitignore` before creating it.
