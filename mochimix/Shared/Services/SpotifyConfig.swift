@@ -10,16 +10,7 @@ import Foundation
 /// Central place for the constants that tie this app to a specific Spotify
 /// Developer Dashboard app registration and to this project's App Group.
 ///
-/// The client ID is NOT a secret -- with the PKCE flow this app uses (see
-/// SpotifyAuthService), there is no client secret at all. PKCE was designed
-/// for exactly this situation (a public client, like a mobile app, that
-/// can't safely keep a secret), so it would be technically safe to commit a
-/// real value here. It still lives in the untracked `Secrets.swift`
-/// (gitignored) instead, though: Spotify apps in Development Mode only let
-/// explicitly allow-listed users log in at all, so a real ID checked into
-/// this repo wouldn't actually let anyone else log in anyway -- each person
-/// building this needs to register their own Spotify app and create their
-/// own `Secrets.swift` (see README setup guide).
+/// You need your own Spotify Client ID -- see the README setup guide.
 // `nonisolated` here because these are just plain constants -- there's no
 // mutable state to protect, so there's no reason for the project-wide
 // "default to MainActor" setting to force callers on other threads/actors
