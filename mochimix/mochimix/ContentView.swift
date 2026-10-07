@@ -7,23 +7,59 @@
 
 import SwiftUI
 
-/// The app's root view: shows LoginView while logged out, or a tab view
-/// (Recent Items + Settings) once logged in.
+/// The app's root view: shows LoginView while logged out, or a swipeable
+/// tab view (Recent / Stats / Settings) once logged in.
+///
+/// Uses `.tabViewStyle(.page)` (indicator hidden) rather than the plain
+/// icon-bar style specifically because the plain style has no swipe
+/// gesture between tabs at all -- `.page` is what gives swiping its
+/// native, finger-tracking slide animation. The icon bar at the bottom
+/// is a custom view (`mainTabBar`) rather than `.tabItem`, since `.page`
+/// style doesn't render tab items; it just sets the same `selectedTab`
+/// binding that swiping also drives, so tapping and swiping stay in sync.
 struct ContentView: View {
     @ObservedObject private var auth = SpotifyAuthService.shared
     @ObservedObject private var pinStore = PinStore.shared
     @ObservedObject private var settingsStore = SettingsStore.shared
     @State private var lastError: String?
+    @State private var selectedTab: MainTab = .recent
+
+    enum MainTab: Int, CaseIterable {
+        case recent, stats, settings
+
+        var label: String {
+            switch self {
+            case .recent: return "Recent"
+            case .stats: return "Stats"
+            case .settings: return "Settings"
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .recent: return "clock.arrow.circlepath"
+            case .stats: return "chart.pie"
+            case .settings: return "gearshape"
+            }
+        }
+    }
 
     var body: some View {
         Group {
             if auth.isLoggedIn {
-                TabView {
-                    RecentItemsView(pinStore: pinStore, settingsStore: settingsStore)
-                        .tabItem { Label("Recent", systemImage: "clock.arrow.circlepath") }
+                TabView(selection: $selectedTab) {
+                    RecentItemsView(pinStore: pinStore, settingsStore: settingsStore, isActive: selectedTab == .recent)
+                        .tag(MainTab.recent)
 
-                    SettingsView(settingsStore: settingsStore, auth: auth)
-                        .tabItem { Label("Settings", systemImage: "gearshape") }
+                    GenreStatsView(isActive: selectedTab == .stats)
+                        .tag(MainTab.stats)
+
+                    SettingsView(settingsStore: settingsStore, auth: auth, isActive: selectedTab == .settings)
+                        .tag(MainTab.settings)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .safeAreaInset(edge: .bottom) {
+                    mainTabBar
                 }
             } else {
                 LoginView(auth: auth, lastError: lastError)
@@ -46,6 +82,32 @@ struct ContentView: View {
             } else {
                 lastError = SharedStore.shared.lastFetchErrorMessage
             }
+        }
+    }
+
+    private var mainTabBar: some View {
+        HStack(spacing: 0) {
+            ForEach(MainTab.allCases, id: \.self) { tab in
+                let isSelected = selectedTab == tab
+                Button {
+                    withAnimation(.snappy(duration: 0.25)) { selectedTab = tab }
+                } label: {
+                    VStack(spacing: 4) {
+                        Image(systemName: tab.systemImage)
+                            .font(.system(size: 20))
+                        Text(tab.label)
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(isSelected ? Color.accentColor : AppTheme.secondaryText)
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 4)
+        .background {
+            AppTheme.cardBackground.ignoresSafeArea(edges: .bottom)
         }
     }
 }

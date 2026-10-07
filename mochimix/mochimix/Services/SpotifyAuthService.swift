@@ -262,6 +262,7 @@ final class SpotifyAuthService: NSObject, ObservableObject {
         SharedStore.shared.saveRecentItems([])
         SharedStore.shared.saveWidgetItems(.empty)
         ProfileStore.shared.clear()
+        GenreStatsStore.shared.clear()
     }
 
     enum AuthError: LocalizedError {

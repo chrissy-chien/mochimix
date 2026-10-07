@@ -11,6 +11,7 @@ import WidgetKit
 struct SettingsView: View {
     @ObservedObject var settingsStore: SettingsStore
     @ObservedObject var auth: SpotifyAuthService
+    let isActive: Bool
     @ObservedObject private var profileStore = ProfileStore.shared
 
     private static let widgetKind = "mochimix_widget"
@@ -21,7 +22,7 @@ struct SettingsView: View {
             // use custom button rows instead of list-style pickers, and so
             // Font/Background can scroll horizontally -- both would look
             // and behave oddly nested inside Form's List chrome.
-            ScrollView {
+            ScrollResettingPage(isActive: isActive) {
                 VStack(alignment: .leading, spacing: 28) {
                     Text("Settings")
                         .font(.largeTitle.bold())
@@ -36,7 +37,6 @@ struct SettingsView: View {
                 }
                 .padding()
             }
-            .scrollContentBackground(.hidden)
             .background(AppTheme.background)
             // Mode changes don't need fresh Spotify data -- just a
             // different view of what's already cached.
@@ -367,5 +367,5 @@ private extension View {
 }
 
 #Preview {
-    SettingsView(settingsStore: .shared, auth: .shared)
+    SettingsView(settingsStore: .shared, auth: .shared, isActive: true)
 }

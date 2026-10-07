@@ -63,13 +63,24 @@ struct SpotifyTrack: Codable, Hashable {
 
 /// The full artist object, fetched separately via GET /v1/artists/{id}
 /// (or the `context.href` URL Spotify already gives us) when a recently
-/// played track's context points at an artist.
+/// played track's context points at an artist -- also the shape returned by
+/// GET /v1/me/top/artists (genre listening stats).
 struct SpotifyArtist: Codable, Hashable {
     let id: String
     let name: String
     let uri: String
     let images: [SpotifyImage]?
     let externalUrls: SpotifyExternalURLs
+    // Optional even though Spotify documents this as always an array
+    // (possibly empty): matches this file's convention of treating
+    // Spotify arrays as nullable rather than assuming always-present.
+    //
+    // Kept for completeness, but GenreStatsStore does NOT use this --
+    // Spotify's `genres` field has come back empty for 100% of this
+    // app's own top-artists results since ~March 2025, a widely
+    // reported issue on Spotify's side. GenreStatsStore resolves genres
+    // via Last.fm instead (LastFMAPIClient).
+    let genres: [String]?
 }
 
 /// A playlist's owner -- who created/owns it, not who's currently viewing

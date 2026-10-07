@@ -326,6 +326,35 @@ final class SpotifyAPIClient {
         try await get(SpotifyConfig.apiBaseURL.appendingPathComponent("me"))
     }
 
+    /// GET /v1/me/top/artists -- Spotify's own affinity-ranked "top artists"
+    /// for a given window, used for genre listening stats (GenreStatsStore).
+    /// Each artist object already includes its `genres`, so no per-artist
+    /// follow-up fetch is needed the way `fetchArtist` requires elsewhere.
+    func fetchTopArtists(timeRange: String, limit: Int = 50) async throws -> [SpotifyArtist] {
+        var components = URLComponents(
+            url: SpotifyConfig.apiBaseURL.appendingPathComponent("me/top/artists"),
+            resolvingAgainstBaseURL: false
+        )!
+        components.queryItems = [
+            URLQueryItem(name: "time_range", value: timeRange),
+            URLQueryItem(name: "limit", value: String(limit))
+        ]
+        do {
+            let page: SpotifyPaging<SpotifyArtist> = try await get(components.url!)
+            let artists = page.items.compactMap { $0 }
+            #if DEBUG
+            let withGenres = artists.filter { !($0.genres ?? []).isEmpty }.count
+            debugLog("fetchTopArtists(\(timeRange)): succeeded, \(artists.count) artist(s), \(withGenres) with non-empty genres")
+            #endif
+            return artists
+        } catch {
+            #if DEBUG
+            debugLog("fetchTopArtists(\(timeRange)): FAILED: \(error)")
+            #endif
+            throw error
+        }
+    }
+
     // MARK: - Generic authenticated GET, with one retry after a forced token refresh
 
     private func getOptional<T: Decodable>(_ url: URL, isRetry: Bool = false) async throws -> T? {

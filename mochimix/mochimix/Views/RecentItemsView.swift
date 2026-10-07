@@ -30,6 +30,7 @@ struct RecentItemsView: View {
     }
     @ObservedObject var pinStore: PinStore
     @ObservedObject var settingsStore: SettingsStore
+    let isActive: Bool
 
     @State private var items: [MochiMixItem] = SharedStore.shared.loadRecentItems()
     @State private var isLoading = false
@@ -40,49 +41,44 @@ struct RecentItemsView: View {
 
     var body: some View {
         NavigationStack {
-            GeometryReader { proxy in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        Text("Recent")
-                            .font(.largeTitle.bold())
-                            .foregroundStyle(AppTheme.primaryText)
+            ScrollResettingPage(isActive: isActive, onRefresh: { await refresh(isUserInitiated: true) }) {
+                VStack(alignment: .leading, spacing: 18) {
+                    Text("Recent")
+                        .font(.largeTitle.bold())
+                        .foregroundStyle(AppTheme.primaryText)
 
-                        recentSection
+                    recentSection
 
-                        if settingsStore.settings.mode.allowsEditingPins {
-                            pinnedSection
-                        }
+                    if settingsStore.settings.mode.allowsEditingPins {
+                        pinnedSection
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .topLeading)
                 }
-                .scrollBounceBehavior(.basedOnSize)
-                .background(AppTheme.background.ignoresSafeArea())
-                .refreshable { await refresh(isUserInitiated: true) }
-                .task { await refreshOnFirstLoadIfNeeded() }
-                .overlay(alignment: .bottom) {
-                    if isLoading && !items.isEmpty {
-                        HStack(spacing: 8) {
-                            ProgressView()
-                            Text("Refreshing…")
-                                .font(.footnote)
-                                .foregroundStyle(AppTheme.secondaryText)
-                        }
-                        .floatingStatusBubble()
-                    } else if let errorMessage, !items.isEmpty {
-                        Text(errorMessage)
+                .padding()
+            }
+            .background(AppTheme.background.ignoresSafeArea())
+            .task { await refreshOnFirstLoadIfNeeded() }
+            .overlay(alignment: .bottom) {
+                if isLoading && !items.isEmpty {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text("Refreshing…")
                             .font(.footnote)
-                            .foregroundStyle(.red)
-                            .multilineTextAlignment(.center)
-                            .floatingStatusBubble()
-                            .opacity(errorBubbleOpacity)
-                            .offset(y: errorBubbleOffsetY)
+                            .foregroundStyle(AppTheme.secondaryText)
                     }
+                    .floatingStatusBubble()
+                } else if let errorMessage, !items.isEmpty {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                        .floatingStatusBubble()
+                        .opacity(errorBubbleOpacity)
+                        .offset(y: errorBubbleOffsetY)
                 }
-                .onChange(of: errorMessage) { _, newValue in
-                    if newValue != nil, !items.isEmpty {
-                        showErrorBubble()
-                    }
+            }
+            .onChange(of: errorMessage) { _, newValue in
+                if newValue != nil, !items.isEmpty {
+                    showErrorBubble()
                 }
             }
         }
@@ -293,7 +289,7 @@ private struct RecentItemRow: View {
 }
 
 #Preview {
-    RecentItemsView(pinStore: .shared, settingsStore: .shared)
+    RecentItemsView(pinStore: .shared, settingsStore: .shared, isActive: true)
 }
 
 private extension View {

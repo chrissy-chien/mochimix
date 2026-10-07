@@ -109,6 +109,57 @@ require typing a search query at all.
   cached yet, the widget shows an explanatory empty state instead of a
   blank grid.
 
+### Genre listening stats
+
+The **Stats** tab shows a genre breakdown of your top artists across
+Spotify's three affinity windows (4 Weeks / 6 Months / 1 Year), via `GET
+/me/top/artists`, as either a bar list or a pie chart (a floating toggle
+above the tab bar switches between them). Subgenres under the same
+umbrella family (e.g. dubstep and house, both Electronic) render in the
+same color — see `ParentGenre.swift`. The pie groups anything past the
+top 6 genres into one "Other" wedge for readability.
+
+Spotify's own per-artist `genres` field has been unreliable/empty since
+around March 2025 (a widely-reported issue, confirmed independently via
+this app's own debug log — not something fixable by changing how this app
+calls Spotify's API). Instead, `GenreStatsStore` resolves each top
+artist's genres from two external, Spotify-independent sources, tried in
+order:
+
+1. **getGenre.com** (`GetGenreAPIClient`, `GET /search?artist_id=...`) —
+   queried by **exact Spotify artist ID** (getGenre's own `artist_id` is
+   itself a Spotify ID, confirmed by testing), so there's no fuzzy
+   name-matching risk. Requires a getGenre.com account (email + password
+   in `Secrets.swift`) exchanged for a bearer token via
+   `GetGenreAuthService` — a plain OAuth2 password grant, no
+   browser/redirect needed. Showed no rate limiting across ~10 live test
+   requests (no documented ceiling either, so `GenreStatsStore` still
+   calls it sequentially rather than assuming that holds indefinitely).
+2. **Last.fm** (`LastFMAPIClient`, `artist.gettoptags`) — used only when
+   getGenre has no genres for that artist. Needs a free API key (see
+   setup below).
+
+An earlier version of this used MusicBrainz as the primary source
+(matching what the Last.fm-tracking Discord bot
+[Chuu](https://github.com/ishwi/Chuu) does by default) before switching
+to getGenre, which turned out faster (single request by exact ID, vs.
+MusicBrainz's 2-request name search-then-lookup under a strict ~1
+request/second limit) and comparable in genre quality.
+
+**Licensing note:** getGenre's data carries a Creative Commons
+Attribution-NonCommercial-ShareAlike 4.0 license, but their (generic,
+not API-specific) Terms of Service separately says content is for
+"personal use... not for resale," which doesn't clearly address an app
+redistributing their API responses to other users. This is accepted
+knowingly for this personal, non-monetized project; if you fork this and
+plan to distribute more widely or monetize, email
+`support@getgenre.com` first for explicit permission — there's no
+published commercial tier or self-serve license to buy.
+
+Each artist's resolved genres are cached indefinitely per Spotify artist
+ID (genre doesn't meaningfully change day to day), so this lookup is a
+one-time cost per artist, not something repeated on every refresh.
+
 ### App settings
 
 The Settings tab lets you configure, in order:
@@ -126,7 +177,10 @@ The Settings tab lets you configure, in order:
   list.
 - **Spotify Account** — shows your Spotify display name/avatar (fetched
   from `GET /v1/me` and cached) and a **Log Out** button, which clears
-  Keychain tokens, cached recent items, and cached widget display data.
+  Keychain tokens, cached recent items, cached widget display data, and
+  cached genre stats (including the getGenre/Last.fm artist-genre cache).
+  The getGenre account's own login token is unrelated to your Spotify
+  session, so it's unaffected by logging out of Spotify.
 
 ### Theme / light & dark mode behavior
 
@@ -232,6 +286,7 @@ mochimix/
 │   │   ├── RecentItemsView.swift     "Recent" tab: recent items + pinned editor
 │   │   ├── PinnedSlotsView.swift     The 5-slot pinned-items editor grid
 │   │   ├── PinSearchView.swift       Search-and-pin sheet
+│   │   ├── GenreStatsView.swift      "Stats" tab: bar/pie genre breakdown by time range
 │   │   └── SettingsView.swift        Widget mode/font/background + account settings
 │   └── Services/                  App-only business logic (never used by the widget)
 │       ├── SpotifyAuthService.swift   PKCE login/refresh, Keychain-backed tokens
@@ -244,6 +299,15 @@ mochimix/
 │       │                              data + artwork to the shared container
 │       ├── PinStore.swift             Manages the 5 pinned slots
 │       ├── ProfileStore.swift         Caches the logged-in user's name/avatar
+│       ├── GenreStatsStore.swift      Fetches Spotify top artists, resolves genres
+│       │                              via getGenre then Last.fm, caches the breakdown
+│       ├── ParentGenre.swift          Genre -> umbrella family classifier + colors
+│       ├── GetGenreAuthService.swift  getGenre.com login (OAuth2 password grant),
+│       │                              Keychain-backed token caching
+│       ├── GetGenreAPIClient.swift    getGenre.com genre search client (by Spotify ID)
+│       ├── GetGenreModels.swift       getGenre API response Decodable types
+│       ├── LastFMAPIClient.swift      Minimal Last.fm Web API client (genre tags only)
+│       ├── LastFMModels.swift         Last.fm API response Decodable types
 │       ├── SettingsStore.swift        Wraps WidgetSettings, persists via SharedStore
 │       ├── KeychainHelper.swift       Thin Keychain Services wrapper (tokens only)
 │       ├── ImageCache.swift           Downloads/prunes cached artwork files
@@ -269,6 +333,8 @@ mochimix/
     │   ├── SharedStore.swift           The single App Group read/write choke point
     │   ├── SpotifyConfig.swift         Client ID, redirect URI, scopes, App Group ID,
     │   │                              and other tunable constants (see below)
+    │   ├── LastFMConfig.swift          Last.fm API key + base URL (genre stats fallback)
+    │   ├── GetGenreConfig.swift        getGenre.com account + base/token URLs (genre stats primary)
     │   └── BundledResource.swift       Helper for loading bundled JSON/image resources
     └── Backgrounds/
         ├── backgrounds.json            Manifest of available widget backgrounds
@@ -371,28 +437,51 @@ Declared in `SpotifyConfig.scope`:
   full playlist details (name, artwork, owner) for a private or
   collaborative playlist via `GET /v1/playlists/{id}`, even for playlists
   you own. Without these, that lookup 403s for any non-public playlist.
+- `user-top-read` — needed for `GET /me/top/artists`, which the Stats
+  tab's genre breakdown is built on.
 
 No write scopes are requested — this app only ever reads your listening
 history and playlist/album/artist metadata.
 
-### 8. Where the Spotify Client ID lives
+### 8. Where the Spotify Client ID (and genre-stats credentials) live
 
-You need your own Spotify Client ID. Create `Shared/Services/Secrets.swift`
-yourself (this path is already covered by `.gitignore`) — the project won't
-compile until this file exists:
+You need your own Spotify Client ID. The Stats tab's genre breakdown
+also needs:
+
+- A **getGenre.com account** (sign up and verify your email at
+  [getgenre.com](https://www.getgenre.com) — free, no paid tier) — this
+  is the primary genre source, queried via `GetGenreAuthService`'s
+  OAuth2 password grant (your account email + password, not a simple API
+  key). See the licensing note in "Genre listening stats" above before
+  using this beyond personal use.
+- A free **Last.fm API key** from
+  [last.fm/api/account/create](https://www.last.fm/api/account/create)
+  (no approval wait) — the fallback, only consulted when getGenre has
+  nothing for an artist.
+
+Create `Shared/Services/Secrets.swift` yourself (this path is already
+covered by `.gitignore`) — the project won't compile until this file
+exists:
 
 ```swift
 import Foundation
 
 nonisolated enum Secrets {
     static let spotifyClientID = "YOUR_SPOTIFY_CLIENT_ID"
+    static let lastFMAPIKey = "YOUR_LASTFM_API_KEY"
+    static let getGenreEmail = "YOUR_GETGENRE_EMAIL"
+    static let getGenrePassword = "YOUR_GETGENRE_PASSWORD"
 }
 ```
 
-Replace `YOUR_SPOTIFY_CLIENT_ID` with your own Client ID from step 5. Since
-`Shared/` is one of this project's synchronized folders (see "Requirements"
-above), Xcode picks up the new file automatically — no manual "add to
-target" step needed.
+Replace each placeholder with your own values from the steps above.
+Since `Shared/` is one of this project's synchronized folders (see
+"Requirements" above), Xcode picks up the new file automatically — no
+manual "add to target" step needed. If you skip the Last.fm key, the app
+still builds and runs fine — the Stats tab will just show less complete
+genre data (whatever getGenre alone can resolve) instead of "No genre
+data yet" for every time range. Skipping the getGenre credentials means
+every artist falls through to Last.fm instead.
 
 ### 9. Running on Simulator
 
@@ -509,6 +598,25 @@ builds.
   that are clearly defined elsewhere**: often just SourceKit indexer lag,
   not a real compile error — a clean build (Cmd-Shift-K then Cmd-B) or
   restarting Xcode usually resolves it.
+- **Stats tab always shows "No genre data yet"**: check —
+  1. If `user-top-read` was added to `SpotifyConfig.scope` after you'd
+     already logged in once, your existing session's token doesn't have
+     it. Log out and back in so Spotify can grant the added scope.
+  2. `Secrets.swift` still has the `getGenreEmail`/`getGenrePassword`
+     placeholders (or the account's email isn't verified yet) —
+     `GetGenreAuthService`'s login will fail and every artist falls
+     through to Last.fm, which needs its own valid key to pick up the
+     slack (see next point).
+  3. `Secrets.swift` still has the `lastFMAPIKey` placeholder (or an
+     invalid key) — this only matters for artists getGenre couldn't
+     resolve, so it won't cause a fully-empty Stats tab by itself, but it
+     does mean less complete coverage. Get a free key from
+     [last.fm/api/account/create](https://www.last.fm/api/account/create).
+- **Switching away from the Stats tab mid-resolve**: safe — `GenreStatsStore`
+  owns its own refresh task independent of the view, so it keeps resolving
+  in the background rather than being cancelled (this was a real bug once,
+  surfacing as spurious `NSURLErrorCancelled`/-999 failures; fixed by that
+  task ownership change).
 
 ## 6. Privacy / security notes
 
@@ -519,7 +627,31 @@ With the scopes listed above, mochimix can read (but never write/modify):
 - Your recently played tracks and currently-playing state.
 - Metadata (name, artwork, owner) for playlists, albums, and artists,
   including your own private and collaborative playlists.
+- Your top artists over 3 time windows (used for the Stats tab).
 - Your Spotify profile display name and avatar image.
 
 It never posts, follows, modifies playlists, or takes any write action
 against your Spotify account.
+
+### What this app sends to getGenre and Last.fm
+
+The Stats tab's genre breakdown sends your top artists' **Spotify artist
+IDs** to getGenre.com (e.g. `4Z8W4fKeB5YxbusRsdQVPb` for Radiohead — an
+opaque Spotify catalog identifier, not anything tied to your personal
+Spotify account), and — only when getGenre has nothing for an artist —
+sends **artist names only** (e.g. "Tame Impala") to Last.fm's public
+`artist.gettoptags`. Neither ever receives your Spotify identity,
+account, email, or listening history as a whole.
+
+Unlike Last.fm's plain unauthenticated GETs, requests to getGenre are
+authenticated as a getGenre.com account (see setup above) — that
+account's email/password live in `Secrets.swift`, which is gitignored
+and never committed, but **is compiled into the app binary as plain
+text**, same as the Spotify Client ID and Last.fm key already are. For a
+personal, non-distributed build this is a non-issue; if you ever
+distribute a build of this app to others, anyone who decompiles it could
+recover those credentials, so treat them accordingly (e.g. a
+dedicated/throwaway getGenre account rather than one used elsewhere).
+
+Results from both services are cached locally per artist indefinitely,
+so the same popular artist isn't re-sent on every refresh.

@@ -38,7 +38,11 @@ nonisolated enum SpotifyConfig {
     /// track's album (see ItemNormalizer). Requesting them here means
     /// existing logged-in users need to log in again once so Spotify can
     /// grant the added scope -- their old session won't have it.
-    static let scope = "user-read-recently-played playlist-read-private playlist-read-collaborative user-read-currently-playing user-read-playback-state"
+    /// `user-top-read` is needed for GET /v1/me/top/artists (genre listening
+    /// stats). Like the other scopes here, adding it means existing
+    /// logged-in users need to log in again once so Spotify can grant it --
+    /// their old session won't have it.
+    static let scope = "user-read-recently-played playlist-read-private playlist-read-collaborative user-read-currently-playing user-read-playback-state user-top-read"
 
     static let authorizeURL = URL(string: "https://accounts.spotify.com/authorize")!
     static let tokenURL = URL(string: "https://accounts.spotify.com/api/token")!
