@@ -50,8 +50,6 @@ struct GenreStatsView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                header
-
                 // `.page` style is what gives swiping between Tags/Genres/
                 // Artists its native, finger-tracking slide animation --
                 // the floating toggle below sets the same `chartMode`
@@ -90,6 +88,11 @@ struct GenreStatsView: View {
                     .tag(ChartMode.artists)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                // An inset (not a VStack row) so the charts scroll up
+                // behind the header's translucent background.
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    header
+                }
             }
             .background(AppTheme.background)
             .safeAreaInset(edge: .bottom) {
@@ -118,23 +121,24 @@ struct GenreStatsView: View {
     // MARK: - Header (fixed chrome above the swipeable pages)
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Stats")
-                .font(.largeTitle.bold())
-                .foregroundStyle(AppTheme.primaryText)
-                .padding(.bottom, -6)
+        VStack(alignment: .leading, spacing: 0) {
+            PageTitle(title: "Stats", hasBackground: false)
 
-            Picker("Time Range", selection: $selectedRange) {
-                ForEach(GenreStatsStore.TimeRange.allCases, id: \.self) { range in
-                    Text(range.label).tag(range)
+            VStack(alignment: .leading, spacing: 20) {
+                Picker("Time Range", selection: $selectedRange) {
+                    ForEach(GenreStatsStore.TimeRange.allCases, id: \.self) { range in
+                        Text(range.label).tag(range)
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
+                .pickerStyle(.segmented)
 
-            familyLegend
+                familyLegend
+            }
+            .padding(.horizontal)
+            .padding(.top, 8)
+            .padding(.bottom, 20)
         }
-        .padding()
-        .padding(.bottom, 4)
+        .topBarBackground()
     }
 
     /// Always shown (not just for Genres) since multiple bars/rows can

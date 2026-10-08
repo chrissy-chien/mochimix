@@ -58,6 +58,10 @@ struct ContentView: View {
                         .tag(MainTab.settings)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                // The paged TabView clips pages to its frame; reaching the
+                // top of the screen lets each page's top bar sit behind the
+                // floating app header (see TopBar.swift).
+                .ignoresSafeArea(.container, edges: .top)
                 .safeAreaInset(edge: .bottom) {
                     mainTabBar
                 }

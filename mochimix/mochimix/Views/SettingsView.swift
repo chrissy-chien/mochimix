@@ -13,6 +13,7 @@ struct SettingsView: View {
     @ObservedObject var auth: SpotifyAuthService
     let isActive: Bool
     @ObservedObject private var profileStore = ProfileStore.shared
+    @Environment(\.openURL) private var openURL
 
     private static let widgetKind = "mochimix_widget"
 
@@ -24,11 +25,6 @@ struct SettingsView: View {
             // and behave oddly nested inside Form's List chrome.
             ScrollResettingPage(isActive: isActive) {
                 VStack(alignment: .leading, spacing: 28) {
-                    Text("Settings")
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(AppTheme.primaryText)
-                        .padding(.bottom, -14)
-
                     modeSection
                     fontSection
                     backgroundSection
@@ -36,6 +32,9 @@ struct SettingsView: View {
                     accountSection
                 }
                 .padding()
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                PageTitle(title: "Settings")
             }
             .background(AppTheme.background)
             // Mode changes don't need fresh Spotify data -- just a
@@ -202,39 +201,28 @@ struct SettingsView: View {
         }
     }
 
+    /// Tapping opens the user's Spotify profile, same as the header avatar.
     private var profileRow: some View {
-        HStack(spacing: 16) {
-            Group {
-                if let url = profileStore.avatarURL {
-                    AsyncImage(url: url) { phase in
-                        if let image = phase.image {
-                            image.resizable().scaledToFill()
-                        } else {
-                            profilePlaceholder
-                        }
-                    }
-                } else {
-                    profilePlaceholder
-                }
-            }
-            .frame(width: 54, height: 54)
-            .clipShape(Circle())
+        Button {
+            if let url = profileStore.profileURL { openURL(url) }
+        } label: {
+            HStack(spacing: 16) {
+                ProfileAvatar(size: 54)
 
-            Text(profileStore.displayName?.isEmpty == false ? profileStore.displayName! : "Spotify User")
-                .font(.body)
-                .foregroundStyle(AppTheme.primaryText)
+                Text(profileStore.displayName?.isEmpty == false ? profileStore.displayName! : "Spotify User")
+                    .font(.body)
+                    .foregroundStyle(AppTheme.primaryText)
 
-            Spacer()
-        }
-    }
+                Spacer()
 
-    private var profilePlaceholder: some View {
-        Circle()
-            .fill(AppTheme.iconPlaceholderBackground)
-            .overlay {
-                Image(systemName: "person.fill")
+                Image(systemName: "arrow.up.right")
+                    .font(.footnote.weight(.semibold))
                     .foregroundStyle(AppTheme.secondaryText)
             }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Opens your Spotify profile")
     }
 }
 

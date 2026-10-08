@@ -43,10 +43,6 @@ struct RecentItemsView: View {
         NavigationStack {
             ScrollResettingPage(isActive: isActive, onRefresh: { await refresh(isUserInitiated: true) }) {
                 VStack(alignment: .leading, spacing: 18) {
-                    Text("Recent")
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(AppTheme.primaryText)
-
                     recentSection
 
                     if settingsStore.settings.mode.allowsEditingPins {
@@ -54,6 +50,9 @@ struct RecentItemsView: View {
                     }
                 }
                 .padding()
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                PageTitle(title: "Recent")
             }
             .background(AppTheme.background.ignoresSafeArea())
             .task { await refreshOnFirstLoadIfNeeded() }
@@ -120,7 +119,6 @@ struct RecentItemsView: View {
             }
             .sectionCardBackground()
         }
-        .padding(.top, -12)
         .padding(.bottom, -12)
     }
 

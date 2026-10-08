@@ -89,18 +89,23 @@ struct mochimixApp: App {
 private struct RootShellView: View {
     @ObservedObject private var auth = SpotifyAuthService.shared
     @State private var showLaunchSplash = true
+    @State private var headerHeight: CGFloat = 0
 
     var body: some View {
         ZStack {
-            VStack(alignment: .leading, spacing: 0) {
-                if auth.isLoggedIn {
-                    AppHeaderView()
-
-                    HeaderBackgroundFade()
+            // The header floats over the pages (rather than sitting above
+            // them) so it can share each page's translucent top-bar band;
+            // pages read its height from `topChromeHeight` to make room.
+            ContentView()
+                .environment(\.topChromeHeight, auth.isLoggedIn ? headerHeight : 0)
+                .overlay(alignment: .top) {
+                    if auth.isLoggedIn {
+                        AppHeaderView()
+                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                                headerHeight = $0
+                            }
+                    }
                 }
-
-                ContentView()
-            }
             .opacity(showLaunchSplash ? 0 : 1)
             .animation(.easeInOut(duration: 0.35), value: showLaunchSplash)
 
@@ -153,59 +158,46 @@ private struct LaunchSplashView: View {
     }
 }
 
+/// The slim bar above every main page: the user's Spotify avatar (tap to
+/// open their Spotify profile) on the left, the mochimix mark centered.
+/// The mark is a template image tinted with `primaryText`, so its single
+/// source PNG works in both light and dark mode.
 private struct AppHeaderView: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    private var imageName: String {
-        colorScheme == .dark ? "header-dark" : "header-light"
-    }
+    @ObservedObject private var profileStore = ProfileStore.shared
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
-        Group {
-            if let uiImage = UIImage(named: imageName) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 270)
-            } else {
-                #if DEBUG
-                let _ = debugLog("Missing header asset named \(imageName). Check Assets.xcassets image set name and target membership.")
-                #endif
+        ZStack {
+            Image("mochimix-mark")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(height: 39)
+                .foregroundStyle(AppTheme.primaryText)
+                .accessibilityLabel("mochimix")
 
-                Text("mochimix")
-                    .font(.custom("Inter", size: 40).weight(.bold))
-                    .foregroundStyle(AppTheme.primaryText)
-                    .lineLimit(1)
+            HStack {
+                Button {
+                    if let url = profileStore.profileURL { openURL(url) }
+                } label: {
+                    ProfileAvatar(size: 42)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Open your Spotify profile")
+
+                Spacer()
             }
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .frame(height: 47)
         .padding(.horizontal)
-        .padding(.top, 20)
-        .padding(.bottom, 0)
-        .background(AppTheme.background)
-        .zIndex(2)
-    }
-}
-
-private struct HeaderBackgroundFade: View {
-    var body: some View {
-        Rectangle()
-            .fill(AppTheme.background)
-            .mask {
-                LinearGradient(
-                    stops: [
-                        .init(color: .black, location: 0.0),
-                        .init(color: .black, location: 0.45),
-                        .init(color: .black.opacity(0.0), location: 1.0)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+        .padding(.top, 4)
+        // No background of its own: each page's PageTitle draws the
+        // translucent top-bar band behind this header.
+        // Profiles cached before the header linked out have no user ID yet.
+        .task {
+            if profileStore.userID == nil {
+                await profileStore.refresh()
             }
-            .frame(height: 36)
-            .frame(maxWidth: .infinity)
-            .allowsHitTesting(false)
-            .padding(.bottom, -28)
-            .zIndex(1)
+        }
     }
 }
