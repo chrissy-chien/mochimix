@@ -50,7 +50,7 @@ struct GenreStatsView: View {
     @State private var barAnimationPending = false
 
     /// Fraction of the full bar width revealed per second.
-    private static let barRevealSpeed = 0.9
+    private static let barRevealSpeed = 1.2
     /// Away from the tab for longer than this replays the animation.
     private static let barReplayAfter: TimeInterval = 120
 

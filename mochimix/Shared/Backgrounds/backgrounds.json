@@ -15,6 +15,26 @@
     "color": "white"
   },
   {
+    "id": "bg-blurry-film",
+    "image": "bg-blurry-film",
+    "color": "white"
+  },
+  {
+    "id": "bg-blurry-rainbow",
+    "image": "bg-blurry-rainbow",
+    "color": "white"
+  },
+  {
+    "id": "bg-blurry-rainbow-2",
+    "image": "bg-blurry-rainbow-2",
+    "color": "white"
+  },
+  {
+    "id": "bg-blurry-water",
+    "image": "bg-blurry-water",
+    "color": "white"
+  },
+  {
     "id": "bg-brown-gradient",
     "image": "bg-brown-gradient",
     "color": "white"
@@ -22,6 +42,11 @@
   {
     "id": "bg-cyber-gradient",
     "image": "bg-cyber-gradient",
+    "color": "black"
+  },
+  {
+    "id": "bg-pastel-abstract",
+    "image": "bg-pastel-abstract",
     "color": "black"
   },
   {
@@ -45,13 +70,28 @@
     "color": "white"
   },
   {
+    "id": "bg-rainbow-circle",
+    "image": "bg-rainbow-circle",
+    "color": "black"
+  },
+  {
+    "id": "bg-space-splatter",
+    "image": "bg-space-splatter",
+    "color": "white"
+  },
+  {
     "id": "bg-star-gradient",
     "image": "bg-star-gradient",
     "color": "black"
   },
   {
-      "id": "bg-sunset-gradient",
-      "image": "bg-sunset-gradient",
-      "color": "black"
+    "id": "bg-sunset-gradient",
+    "image": "bg-sunset-gradient",
+    "color": "black"
+  },
+  {
+    "id": "bg-teal-abstract",
+    "image": "bg-teal-abstract",
+    "color": "white"
   }
 ]
