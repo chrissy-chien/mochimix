@@ -16,6 +16,8 @@ import SwiftUI
 struct ScrollResettingPage<Content: View>: View {
     let isActive: Bool
     var resetAfter: TimeInterval = 120
+    /// `.always` lets a page bounce even when its content fits on screen.
+    var bounce: ScrollBounceBehavior = .basedOnSize
     var onRefresh: (() async -> Void)?
     @ViewBuilder var content: () -> Content
 
@@ -29,7 +31,7 @@ struct ScrollResettingPage<Content: View>: View {
                     .id(topID)
             }
             .scrollContentBackground(.hidden)
-            .scrollBounceBehavior(.basedOnSize)
+            .scrollBounceBehavior(bounce)
             .modifier(ConditionallyRefreshable(onRefresh: onRefresh))
             .onChange(of: isActive) { _, nowActive in
                 if nowActive {

@@ -69,22 +69,57 @@ extension EnvironmentValues {
 struct PageTitle: View {
     let title: String
     var hasBackground = true
+    /// Shows a back chevron before the title (for pushed pages, which hide
+    /// the system navigation bar so they keep this same top bar).
+    var onBack: (() -> Void)?
     @Environment(\.topChromeHeight) private var topChromeHeight
 
     var body: some View {
-        let text = Text(title)
-            .font(.title2.bold())
-            .foregroundStyle(AppTheme.primaryText)
+        let text = HStack(spacing: 6) {
+            if let onBack {
+                Button(action: onBack) {
+                    Image(systemName: "chevron.left")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .frame(width: 28, height: 28, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Back")
+            }
+
+            Text(title)
+                .font(.title2.bold())
+                .foregroundStyle(AppTheme.primaryText)
+        }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal)
             .padding(.top, topChromeHeight + 12)
-            .padding(.bottom, 6)
+            .padding(.bottom, 12)
 
         if hasBackground {
             text.topBarBackground()
         } else {
             text
         }
+    }
+}
+
+/// Pushed pages hide the system navigation bar (PageTitle draws its own
+/// back button), which also switches off iOS's left-edge swipe-to-go-back.
+/// Re-enabling the gesture's delegate brings it back; it's only allowed to
+/// begin when there's actually a page to pop.
+extension UINavigationController: @retroactive UIGestureRecognizerDelegate {
+    // Re-applied on every layout: SwiftUI turns the gesture back off when
+    // it hides the bar for a newly pushed page.
+    override open func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        interactivePopGestureRecognizer?.isEnabled = true
+        interactivePopGestureRecognizer?.delegate = self
+    }
+
+    public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        viewControllers.count > 1
     }
 }
 

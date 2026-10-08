@@ -31,6 +31,33 @@ struct GenreStatsView: View {
     @State private var expandedTagGenre: String?
     @State private var expandedMajorGenre: ParentGenre?
 
+    // Bar "grow in" animation (Tags and Genres pages). Every bar is drawn at
+    // min(its fraction, its page's reveal), and only the reveal animates
+    // (linearly, at a fixed speed) -- so all bars grow at the same rate and
+    // longer ones finish later. 1 = fully drawn. Each page has its own
+    // reveal so the page sliding out keeps its bars while the new one grows.
+    //
+    // Replays on every time-range change and every switch to a page with
+    // bars; returning to the Stats tab replays only after being away for
+    // longer than `barReplayAfter`.
+    @State private var barReveal: [ChartMode: Double] = [:]
+    /// Bumped per run so a superseded run's delayed start / completion
+    /// can't stomp on a newer one.
+    @State private var barAnimationRun = 0
+    /// When the Stats tab was last left; nil until it's first been shown.
+    @State private var lastSeenAt: Date?
+    /// Set when an animation was due but there was no data to animate yet.
+    @State private var barAnimationPending = false
+
+    /// Fraction of the full bar width revealed per second.
+    private static let barRevealSpeed = 0.9
+    /// Away from the tab for longer than this replays the animation.
+    private static let barReplayAfter: TimeInterval = 120
+
+    private func reveal(for mode: ChartMode) -> Double {
+        barReveal[mode] ?? 1
+    }
+
     enum ChartMode: Hashable {
         case tags, genres, artists
     }
@@ -59,7 +86,7 @@ struct GenreStatsView: View {
                         pageBody(isEmpty: shares.isEmpty, emptyTitle: "No genre data yet") {
                             VStack(spacing: 10) {
                                 ForEach(shares) { share in
-                                    GenreShareRow(share: share, range: selectedRange, expandedGenre: $expandedTagGenre)
+                                    GenreShareRow(share: share, range: selectedRange, barReveal: reveal(for: .tags), expandedGenre: $expandedTagGenre)
                                 }
                             }
                             .padding()
@@ -72,6 +99,7 @@ struct GenreStatsView: View {
                             MajorGenreSection(
                                 shares: store.majorGenreBreakdown(in: selectedRange),
                                 range: selectedRange,
+                                barReveal: reveal(for: .genres),
                                 expandedMajorGenre: $expandedMajorGenre
                             )
                             .padding()
@@ -105,15 +133,77 @@ struct GenreStatsView: View {
         }
         // Changing sub-tabs (tap or swipe) closes whatever dropdown was
         // open on the tab being left.
-        .onChange(of: chartMode) { _, _ in
+        .onChange(of: chartMode) { _, mode in
             expandedTagGenre = nil
             expandedMajorGenre = nil
+            requestBarAnimation(for: mode)
+        }
+        // So does switching time ranges -- an open dropdown's contents
+        // belong to the range being left.
+        .onChange(of: selectedRange) { _, _ in
+            expandedTagGenre = nil
+            expandedMajorGenre = nil
+            requestBarAnimation(for: chartMode)
         }
         // Leaving the Stats tab entirely (main tab change) does the same.
         .onChange(of: isActive) { _, active in
-            if !active {
+            if active {
+                if let lastSeenAt, Date().timeIntervalSince(lastSeenAt) <= Self.barReplayAfter {
+                    return
+                }
+                requestBarAnimation(for: chartMode)
+            } else {
                 expandedTagGenre = nil
                 expandedMajorGenre = nil
+                lastSeenAt = Date()
+            }
+        }
+        .onAppear {
+            if isActive, lastSeenAt == nil { requestBarAnimation(for: chartMode) }
+        }
+        // First-ever load: the tab can be opened before any data exists.
+        .onChange(of: shares.isEmpty) { _, isEmpty in
+            if !isEmpty, barAnimationPending {
+                requestBarAnimation(for: chartMode)
+            }
+        }
+    }
+
+    // MARK: - Bar animation
+
+    /// Longest bar on a page -- the animation runs until it's fully drawn.
+    private func longestBar(on mode: ChartMode) -> Double? {
+        switch mode {
+        case .tags: return shares.map(\.fraction).max()
+        case .genres: return store.majorGenreBreakdown(in: selectedRange).map(\.fraction).max()
+        case .artists: return nil
+        }
+    }
+
+    private func requestBarAnimation(for mode: ChartMode) {
+        guard mode != .artists else { return }
+        guard let target = longestBar(on: mode), target > 0 else {
+            // No data yet -- run once it arrives.
+            barAnimationPending = true
+            return
+        }
+        barAnimationPending = false
+        barAnimationRun += 1
+        let run = barAnimationRun
+
+        var reset = Transaction()
+        reset.disablesAnimations = true
+        withTransaction(reset) { barReveal[mode] = 0 }
+
+        // Next run loop (not the same one) so the reset to 0 renders first.
+        DispatchQueue.main.async {
+            guard run == barAnimationRun else { return }
+            withAnimation(.linear(duration: target / Self.barRevealSpeed)) {
+                barReveal[mode] = target
+            } completion: {
+                // Bars are all full at `target`; 1 keeps later data (a
+                // refresh) from being capped by it.
+                if run == barAnimationRun { barReveal[mode] = 1 }
             }
         }
     }
@@ -268,6 +358,7 @@ struct GenreStatsView: View {
 private struct MajorGenreSection: View {
     let shares: [GenreStatsStore.MajorGenreShare]
     let range: GenreStatsStore.TimeRange
+    let barReveal: Double
     @Binding var expandedMajorGenre: ParentGenre?
 
     var body: some View {
@@ -278,7 +369,7 @@ private struct MajorGenreSection: View {
 
             VStack(spacing: 10) {
                 ForEach(shares) { share in
-                    MajorGenreRow(share: share, range: range, expandedMajorGenre: $expandedMajorGenre)
+                    MajorGenreRow(share: share, range: range, barReveal: barReveal, expandedMajorGenre: $expandedMajorGenre)
                 }
             }
         }
@@ -288,6 +379,8 @@ private struct MajorGenreSection: View {
 private struct MajorGenreRow: View {
     let share: GenreStatsStore.MajorGenreShare
     let range: GenreStatsStore.TimeRange
+    /// See `GenreStatsView.barReveal`.
+    let barReveal: Double
     @Binding var expandedMajorGenre: ParentGenre?
 
     @ObservedObject private var store = GenreStatsStore.shared
@@ -346,14 +439,11 @@ private struct MajorGenreRow: View {
                 header
             }
 
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(AppTheme.iconPlaceholderBackground)
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(share.parentGenre.color)
-                        .frame(width: geometry.size.width * share.fraction)
-                }
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(AppTheme.iconPlaceholderBackground)
+                RevealedBar(fraction: share.fraction, reveal: barReveal)
+                    .fill(share.parentGenre.color)
             }
             .frame(height: 8)
 
@@ -435,6 +525,8 @@ private struct SubgenreRow: View {
 private struct GenreShareRow: View {
     let share: GenreStatsStore.GenreShare
     let range: GenreStatsStore.TimeRange
+    /// See `GenreStatsView.tagBarReveal`.
+    let barReveal: Double
     @Binding var expandedGenre: String?
 
     @ObservedObject private var store = GenreStatsStore.shared
@@ -493,14 +585,11 @@ private struct GenreShareRow: View {
             }
             .buttonStyle(.plain)
 
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(AppTheme.iconPlaceholderBackground)
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(parentGenre.color)
-                        .frame(width: geometry.size.width * share.fraction)
-                }
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(AppTheme.iconPlaceholderBackground)
+                RevealedBar(fraction: share.fraction, reveal: barReveal)
+                    .fill(parentGenre.color)
             }
             .frame(height: 8)
 
@@ -552,6 +641,25 @@ private struct GenreShareRow: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(AppTheme.cardBackground)
         }
+    }
+}
+
+/// A bar filled to `min(fraction, reveal)` of the width. Only `reveal` is
+/// animatable, so animating it grows every bar at the same speed and
+/// each one stops at its own fraction.
+private struct RevealedBar: Shape {
+    let fraction: Double
+    var reveal: Double
+
+    var animatableData: Double {
+        get { reveal }
+        set { reveal = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let width = rect.width * min(fraction, max(reveal, 0))
+        let bar = CGRect(x: rect.minX, y: rect.minY, width: width, height: rect.height)
+        return Path(roundedRect: bar, cornerRadius: min(4, width / 2), style: .continuous)
     }
 }
 

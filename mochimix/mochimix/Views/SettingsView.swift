@@ -12,6 +12,8 @@ struct SettingsView: View {
     @ObservedObject var settingsStore: SettingsStore
     @ObservedObject var auth: SpotifyAuthService
     let isActive: Bool
+    /// Whether the Customize Widget page is pushed.
+    @Binding var isCustomizingWidget: Bool
     @ObservedObject private var profileStore = ProfileStore.shared
     @Environment(\.openURL) private var openURL
 
@@ -20,14 +22,12 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             // A plain ScrollView (rather than Form) so the Mode section can
-            // use custom button rows instead of list-style pickers, and so
-            // Font/Background can scroll horizontally -- both would look
-            // and behave oddly nested inside Form's List chrome.
+            // use custom button rows instead of list-style pickers -- they'd
+            // look and behave oddly nested inside Form's List chrome.
             ScrollResettingPage(isActive: isActive) {
                 VStack(alignment: .leading, spacing: 28) {
                     modeSection
-                    fontSection
-                    backgroundSection
+                    customizeWidgetRow
                     appearanceSection
                     accountSection
                 }
@@ -37,16 +37,15 @@ struct SettingsView: View {
                 PageTitle(title: "Settings")
             }
             .background(AppTheme.background)
+            // Driven by a binding (not a NavigationLink) so ContentView can
+            // pop back to the main Settings page -- see ContentView.
+            .navigationDestination(isPresented: $isCustomizingWidget) {
+                WidgetCustomizationView(settingsStore: settingsStore)
+            }
             // Mode changes don't need fresh Spotify data -- just a
             // different view of what's already cached.
             .onChange(of: settingsStore.settings.mode) { _, _ in
                 Task { await WidgetDataProvider.shared.refreshWidgetDisplayOnly() }
-            }
-            .onChange(of: settingsStore.settings.font) { _, _ in
-                WidgetCenter.shared.reloadTimelines(ofKind: Self.widgetKind)
-            }
-            .onChange(of: settingsStore.settings.backgroundID) { _, _ in
-                WidgetCenter.shared.reloadTimelines(ofKind: Self.widgetKind)
             }
             .onChange(of: settingsStore.settings.appColorScheme) { _, _ in
                 // Only the widget's *text color* depends on this (see
@@ -110,61 +109,31 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Font
+    // MARK: - Customize Widget (pushes WidgetCustomizationView)
 
-    private var fontSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Widget Font").font(.headline)
-                .foregroundStyle(AppTheme.primaryText)
-
-            VStack(alignment: .leading, spacing: 10) {
-                ScrollView(.horizontal, showsIndicators: true) {
-                    HStack(spacing: 12) {
-                        ForEach(WidgetFontChoice.allCases) { font in
-                            FontPreviewBox(
-                                font: font,
-                                isSelected: font == settingsStore.settings.font,
-                                action: { settingsStore.settings.font = font }
-                            )
-                        }
-                    }
-                    // Keep the preview boxes visually centered while leaving
-                    // a small gap for the horizontal scroll indicator.
-                    .padding(.vertical, 12)
+    private var customizeWidgetRow: some View {
+        Button {
+            isCustomizingWidget = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "paintbrush.fill")
+                    .foregroundStyle(Color.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Customize Widget")
+                        .foregroundStyle(AppTheme.primaryText)
+                    Text("Font and background, with a live preview")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.secondaryText)
                 }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppTheme.secondaryText)
             }
             .sectionCardBackground()
+            .contentShape(Rectangle())
         }
-    }
-
-    // MARK: - Background
-
-    private var backgroundSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Widget Background").font(.headline)
-                .foregroundStyle(AppTheme.primaryText)
-
-            VStack(alignment: .leading, spacing: 10) {
-                ScrollView(.horizontal, showsIndicators: true) {
-                    HStack(spacing: 12) {
-                        // Loaded from Backgrounds/backgrounds.json -- add a new
-                        // option there (plus its PNG) and it shows up here
-                        // automatically, no code changes needed.
-                        ForEach(BackgroundManifest.all) { background in
-                            BackgroundPreviewBox(
-                                background: background,
-                                isSelected: background.id == settingsStore.settings.backgroundID,
-                                action: { settingsStore.settings.backgroundID = background.id }
-                            )
-                        }
-                    }
-                    // Keep the preview boxes visually centered while leaving
-                    // a small gap for the horizontal scroll indicator.
-                    .padding(.vertical, 12)
-                }
-            }
-            .sectionCardBackground()
-        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Account
@@ -252,96 +221,6 @@ private struct ModeRow: View {
     }
 }
 
-private struct FontPreviewBox: View {
-    let font: WidgetFontChoice
-    let isSelected: Bool
-    let action: () -> Void
-
-    private var previewYOffset: CGFloat {
-        let name = font.displayName.lowercased()
-
-        if name.contains("avenir") || name.contains("snell") || name.contains("cursive") || name.contains("academy") {
-            return 5
-        }
-
-        return 0
-    }
-
-    var body: some View {
-        Button(action: action) {
-            ZStack(alignment: .topTrailing) {
-                VStack(spacing: 4) {
-                    ZStack(alignment: .bottom) {
-                        Text("Aa")
-                            .font(font.font(.title))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.72)
-                            .fixedSize(horizontal: true, vertical: true)
-                            .offset(y: previewYOffset)
-                    }
-                    .frame(width: 72, height: 42, alignment: .bottom)
-
-                    // Deliberately the *default* system font, not `font`
-                    // itself -- so the label underneath stays readable no
-                    // matter how unusual the previewed font looks.
-                    Text(font.displayName)
-                        .font(.caption2)
-                        .foregroundStyle(AppTheme.secondaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                        .frame(width: 64, height: 16, alignment: .top)
-                }
-                .frame(width: 72, height: 72, alignment: .center)
-                .background {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(AppTheme.iconPlaceholderBackground)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2)
-                }
-
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(.white, Color.accentColor)
-                        .font(.system(size: 16))
-                        .padding(4)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct BackgroundPreviewBox: View {
-    let background: BackgroundOption
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            ZStack(alignment: .topTrailing) {
-                BackgroundImage(option: background)
-                    .frame(width: 72, height: 72)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2)
-                    }
-
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(.white, Color.accentColor)
-                        .font(.system(size: 16))
-                        .padding(4)
-                }
-            }
-        }
-    }
-}
-
 private extension View {
     func sectionCardBackground() -> some View {
         self
@@ -355,5 +234,5 @@ private extension View {
 }
 
 #Preview {
-    SettingsView(settingsStore: .shared, auth: .shared, isActive: true)
+    SettingsView(settingsStore: .shared, auth: .shared, isActive: true, isCustomizingWidget: .constant(false))
 }

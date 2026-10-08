@@ -14,10 +14,16 @@ import SwiftUI
 /// both degrade the same way when an asset hasn't been provided yet.
 struct BackgroundImage: View {
     let option: BackgroundOption
+    @Environment(\.displayScale) private var displayScale
 
     var body: some View {
         Group {
-            if let uiImage = BundledResource.image(named: option.image) {
+            if option.id == CustomBackground.id, let uiImage = CustomBackground.image() {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .overlay { customPhotoTreatment }
+            } else if let uiImage = BundledResource.image(named: option.image) {
                 Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
@@ -25,6 +31,26 @@ struct BackgroundImage: View {
                 placeholder
             }
         }
+    }
+
+    /// The bundled backgrounds have this baked into their PNGs: the bottom
+    /// half darkened by 25% black, and a 1px divider across the middle --
+    /// #E0E0E0 on dark backgrounds, #222222 on light ones. An uploaded photo
+    /// gets the same look drawn on top, using its measured brightness (the
+    /// same light/dark call that picks the widget's text color).
+    private var customPhotoTreatment: some View {
+        VStack(spacing: 0) {
+            Color.clear
+            Color.black.opacity(0.25)
+        }
+        .overlay {
+            Rectangle()
+                .fill(option.color == .white
+                      ? Color(red: 0xE0 / 255, green: 0xE0 / 255, blue: 0xE0 / 255)
+                      : Color(red: 0x22 / 255, green: 0x22 / 255, blue: 0x22 / 255))
+                .frame(height: 1 / displayScale)
+        }
+        .allowsHitTesting(false)
     }
 
     private var placeholder: some View {

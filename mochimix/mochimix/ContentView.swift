@@ -23,6 +23,9 @@ struct ContentView: View {
     @ObservedObject private var settingsStore = SettingsStore.shared
     @State private var lastError: String?
     @State private var selectedTab: MainTab = .recent
+    /// Settings' pushed Customize Widget page; lifted here so tab changes
+    /// can reset it and lock paging while it's open.
+    @State private var isCustomizingWidget = false
 
     enum MainTab: Int, CaseIterable {
         case recent, stats, settings
@@ -54,10 +57,22 @@ struct ContentView: View {
                     GenreStatsView(isActive: selectedTab == .stats)
                         .tag(MainTab.stats)
 
-                    SettingsView(settingsStore: settingsStore, auth: auth, isActive: selectedTab == .settings)
-                        .tag(MainTab.settings)
+                    SettingsView(
+                        settingsStore: settingsStore,
+                        auth: auth,
+                        isActive: selectedTab == .settings,
+                        isCustomizingWidget: $isCustomizingWidget
+                    )
+                    // While Customize Widget is pushed, swiping sideways must
+                    // not page to other tabs -- a left-edge swipe goes back.
+                    .background(PagerSwipeLock(isLocked: isCustomizingWidget))
+                    .tag(MainTab.settings)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
+                // Leaving Settings resets it to its main page.
+                .onChange(of: selectedTab) { _, tab in
+                    if tab != .settings { isCustomizingWidget = false }
+                }
                 // The paged TabView clips pages to its frame; reaching the
                 // top of the screen lets each page's top bar sit behind the
                 // floating app header (see TopBar.swift).
@@ -94,6 +109,11 @@ struct ContentView: View {
             ForEach(MainTab.allCases, id: \.self) { tab in
                 let isSelected = selectedTab == tab
                 Button {
+                    // Tapping Settings while already on it pops back to the
+                    // main Settings page.
+                    if tab == .settings, selectedTab == .settings {
+                        isCustomizingWidget = false
+                    }
                     withAnimation(.snappy(duration: 0.25)) { selectedTab = tab }
                 } label: {
                     VStack(spacing: 4) {
@@ -112,6 +132,33 @@ struct ContentView: View {
         .padding(.bottom, 4)
         .background {
             AppTheme.cardBackground.ignoresSafeArea(edges: .bottom)
+        }
+    }
+}
+
+/// Turns swipe-paging of the enclosing `.page`-style TabView on or off.
+/// SwiftUI's `.scrollDisabled` doesn't reach the pager, so this finds the
+/// paging UIScrollView it's placed inside and toggles it directly.
+private struct PagerSwipeLock: UIViewRepresentable {
+    let isLocked: Bool
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    func updateUIView(_ view: UIView, context: Context) {
+        // Deferred: on first layout the view isn't in the hierarchy yet.
+        DispatchQueue.main.async {
+            var ancestor = view.superview
+            while let current = ancestor {
+                if let pager = current as? UIScrollView, pager.isPagingEnabled {
+                    pager.isScrollEnabled = !isLocked
+                    return
+                }
+                ancestor = current.superview
+            }
         }
     }
 }

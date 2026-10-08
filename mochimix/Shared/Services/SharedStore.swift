@@ -114,6 +114,18 @@ final class SharedStore {
         }
     }
 
+    // MARK: - Custom photo background's text color (see CustomBackground)
+
+    private let customBackgroundTextColorKey = "custom_background_text_color"
+
+    var customBackgroundTextColor: BackgroundTextColor {
+        get {
+            defaults.string(forKey: customBackgroundTextColorKey)
+                .flatMap(BackgroundTextColor.init(rawValue:)) ?? .white
+        }
+        set { defaults.set(newValue.rawValue, forKey: customBackgroundTextColorKey) }
+    }
+
     // MARK: - Pinned slots (persisted here so the widget can read them too)
     //
     // Stored as ordered slots (see PinnedSlots) rather than a plain array,

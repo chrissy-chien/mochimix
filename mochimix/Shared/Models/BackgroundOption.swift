@@ -90,7 +90,10 @@ enum BackgroundManifest {
     /// option if the id is unrecognized (e.g. it was chosen before a
     /// manifest edit removed it).
     static func resolve(id: String) -> BackgroundOption {
-        all.first(where: { $0.id == id }) ?? all.first ?? fallback[0]
+        if id == CustomBackground.id, let custom = CustomBackground.option {
+            return custom
+        }
+        return all.first(where: { $0.id == id }) ?? all.first ?? fallback[0]
     }
 
     private static func load() -> [BackgroundOption] {

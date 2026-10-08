@@ -41,7 +41,7 @@ struct RecentItemsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollResettingPage(isActive: isActive, onRefresh: { await refresh(isUserInitiated: true) }) {
+            ScrollResettingPage(isActive: isActive, bounce: .always, onRefresh: { await refresh(isUserInitiated: true) }) {
                 VStack(alignment: .leading, spacing: 18) {
                     recentSection
 
