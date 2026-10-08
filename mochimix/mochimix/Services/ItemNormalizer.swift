@@ -48,6 +48,7 @@ enum ItemNormalizer {
         case rateLimited(type: String, retryAfter: TimeInterval?)
         case skippedDueToCooldown(type: String)
         case contextFetchFailed(type: String, error: String)
+        case contextUnavailable(type: String)
         case fallbackAlbum
         case fallbackTrack
 
@@ -61,6 +62,8 @@ enum ItemNormalizer {
                 return "DEGRADED -- existing rate-limit cooldown active; did not fetch \(type) context, selected \"\(item?.name ?? "?")\" as a fallback"
             case .contextFetchFailed(let type, let error):
                 return "SKIPPED -- context type \(type) but fetching its full object failed: \(error)"
+            case .contextUnavailable(let type):
+                return "selected \"\(item?.name ?? "?")\" (fallback -- Spotify doesn't let this app read that \(type), e.g. a Spotify-generated mix)"
             case .fallbackAlbum:
                 return "selected album \"\(item?.name ?? "?")\" (fallback -- no useful context)"
             case .fallbackTrack:
@@ -92,12 +95,10 @@ enum ItemNormalizer {
         // the same normalization pass -- they'll almost certainly all fail
         // too, and each failed attempt still costs a full network round-trip.
         //
-        // Important: do NOT seed this from SharedStore.rateLimitedUntil.
-        // Doing so can make a future refresh skip every playlist/album/artist
-        // context before even trying the API/cache, producing zero items over
-        // and over. The persisted cooldown is kept only as diagnostic/backoff
-        // state for callers; this normalizer attempts a real refresh and only
-        // trips the circuit breaker after a fresh 429 in this run.
+        // It's also seeded from an active persisted cooldown (below). That
+        // used to be avoided because skipping bypassed the cache too and
+        // dropped items; now a skipped context still resolves from
+        // ContextCache, and an uncached one degrades to the track's album.
         var shouldSkipContextFetches = false
         var didReceiveFreshRateLimit = false
         var observedRetryAfter: TimeInterval?
@@ -108,8 +109,13 @@ enum ItemNormalizer {
             debugLog("fetchNormalizedRecentItems: prior rate-limit cooldown expired before refresh; cleared stored cooldown")
             #endif
         } else if let cooldownUntil = SharedStore.shared.rateLimitedUntil {
+            // Still penalized: don't call the rate-limited context endpoints
+            // at all (that only risks prolonging the penalty). Lookups
+            // already in ContextCache still resolve normally, and everything
+            // else degrades to the track's album -- never a blank list.
+            shouldSkipContextFetches = true
             #if DEBUG
-            debugLog("fetchNormalizedRecentItems: prior rate-limit cooldown exists until \(cooldownUntil), but this run will still attempt cached/API context resolution instead of preemptively skipping everything")
+            debugLog("fetchNormalizedRecentItems: rate-limit cooldown active until \(cooldownUntil) -- using cached contexts only, no context requests this run")
             #endif
         }
 
@@ -236,6 +242,9 @@ enum ItemNormalizer {
            let hrefString = context.href,
            let href = URL(string: hrefString) {
             if skipContextFetch, ["playlist", "album", "artist"].contains(contextType) {
+                if let cached = cachedContextItem(type: contextType, key: hrefString) {
+                    return (cached, .usedContext(type: contextType))
+                }
                 return (degradedFallbackItem(for: track), .skippedDueToCooldown(type: contextType))
             }
 
@@ -274,6 +283,17 @@ enum ItemNormalizer {
         return (MochiMixItemMapper.item(from: track), .fallbackTrack)
     }
 
+    /// A context already resolved on an earlier run (see ContextCache), so
+    /// it can be shown even while context requests are being skipped.
+    private static func cachedContextItem(type: String, key: String) -> MochiMixItem? {
+        switch type {
+        case "playlist": return ContextCache.shared.playlist(key).map(MochiMixItemMapper.item(from:))
+        case "album": return ContextCache.shared.album(key).map(MochiMixItemMapper.item(from:))
+        case "artist": return ContextCache.shared.artist(key).map(MochiMixItemMapper.item(from:))
+        default: return nil
+        }
+    }
+
     /// Stable dedupe key: item type + Spotify id, so e.g. an album and a
     /// track that happen to share a raw id string can never collide.
     private static func dedupeKey(for item: MochiMixItem) -> String {
@@ -306,6 +326,9 @@ enum ItemNormalizer {
     private static func resolveItem(for entry: SpotifyPlayHistoryItem, skipContextFetch: Bool) async -> (MochiMixItem?, ResolveOutcome) {
         if let context = entry.context, let href = URL(string: context.href) {
             if skipContextFetch, ["playlist", "album", "artist"].contains(context.type) {
+                if let cached = cachedContextItem(type: context.type, key: context.href) {
+                    return (cached, .usedContext(type: context.type))
+                }
                 return (degradedFallbackItem(for: entry), .skippedDueToCooldown(type: context.type))
             }
             switch context.type {
@@ -358,12 +381,18 @@ enum ItemNormalizer {
         if let apiError = error as? SpotifyAPIClient.APIError, case .rateLimited(let retryAfter) = apiError {
             return (degradedFallbackItem(for: entry), .rateLimited(type: contextType, retryAfter: retryAfter))
         }
+        if let apiError = error as? SpotifyAPIClient.APIError, case .unavailable = apiError {
+            return (degradedFallbackItem(for: entry), .contextUnavailable(type: contextType))
+        }
         return (nil, .contextFetchFailed(type: contextType, error: "\(error)"))
     }
 
     private static func outcome(for error: Error, track: SpotifyTrack, contextType: String) -> (MochiMixItem?, ResolveOutcome) {
         if let apiError = error as? SpotifyAPIClient.APIError, case .rateLimited(let retryAfter) = apiError {
             return (degradedFallbackItem(for: track), .rateLimited(type: contextType, retryAfter: retryAfter))
+        }
+        if let apiError = error as? SpotifyAPIClient.APIError, case .unavailable = apiError {
+            return (degradedFallbackItem(for: track), .contextUnavailable(type: contextType))
         }
         return (nil, .contextFetchFailed(type: contextType, error: "\(error)"))
     }

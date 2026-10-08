@@ -123,7 +123,12 @@ struct GenreStatsView: View {
                 }
             }
             .background(AppTheme.background)
-            .safeAreaInset(edge: .bottom) {
+            // Floats over the pages (not a safe-area inset, which would
+            // reserve a solid strip -- the paged TabView clips its pages to
+            // its frame) so the bars scroll underneath it. The content
+            // margin lets the last row still scroll clear of the toggle.
+            .contentMargins(.bottom, 64, for: .scrollContent)
+            .overlay(alignment: .bottom) {
                 chartModeToggle
                     .padding(.bottom, 8)
             }
@@ -278,11 +283,9 @@ struct GenreStatsView: View {
             toggleButton(mode: .artists, systemImage: "person.2.fill", label: "Artists")
         }
         .padding(6)
-        .background {
-            Capsule()
-                .fill(AppTheme.cardBackground)
-                .shadow(color: .black.opacity(0.18), radius: 10, y: 3)
-        }
+        // No solid fill -- just a light blur of the bars scrolling behind,
+        // so the unselected labels stay readable over them.
+        .background(.ultraThinMaterial, in: Capsule())
     }
 
     private func toggleButton(mode: ChartMode, systemImage: String, label: String) -> some View {

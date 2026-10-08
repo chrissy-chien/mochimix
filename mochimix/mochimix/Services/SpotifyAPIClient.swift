@@ -16,17 +16,9 @@ final class SpotifyAPIClient {
 
     private init() {}
 
-    /// Caches resolved context objects by their fetch URL for the lifetime
-    /// of the app process. Found via the debug log: the same playlist
-    /// often gets referenced by many different history entries (e.g. 10
-    /// tracks all played from one playlist), and without this cache each
-    /// of those re-fetched the *same* playlist object -- burning through
-    /// Spotify's rate limit fast enough to make later, still-unfetched
-    /// contexts fail with 429 "Too many requests". These objects rarely
-    /// change, so there's no need for expiry/invalidation here.
-    private var playlistCache: [String: SpotifyPlaylist] = [:]
-    private var albumCache: [String: SpotifyAlbum] = [:]
-    private var artistCache: [String: SpotifyArtist] = [:]
+    /// Resolved (and refused) playlist/album/artist lookups, kept across
+    /// launches -- see ContextCache for why this matters for rate limits.
+    private let contextCache = ContextCache.shared
     private var currentUserPlaylistCache: (loadedAt: Date, playlists: [SpotifyPlaylist])?
     private var currentUserPlaylistFetchTask: Task<[SpotifyPlaylist], Error>?
 
@@ -43,6 +35,10 @@ final class SpotifyAPIClient {
         case invalidResponse
         case serverError(status: Int, body: String)
         case rateLimited(retryAfter: TimeInterval?)
+        /// Spotify refused this object (404/403) -- e.g. Spotify-generated
+        /// mixes, which development-mode apps can't read. Remembered in
+        /// ContextCache so it isn't requested again.
+        case unavailable
         case searchUnavailable
 
         var errorDescription: String? {
@@ -59,6 +55,8 @@ final class SpotifyAPIClient {
                 return "Spotify couldn't complete that request right now (error \(status)). Please try again."
             case .rateLimited:
                 return "Spotify is rate-limiting this app right now. Please try again shortly."
+            case .unavailable:
+                return "Spotify doesn't make that item available to this app."
             case .searchUnavailable:
                 return "Spotify search isn't available right now. Please try again in a moment."
             }
@@ -119,7 +117,8 @@ final class SpotifyAPIClient {
 
     func fetchPlaylist(at href: URL) async throws -> SpotifyPlaylist {
         let key = href.absoluteString
-        if let cached = playlistCache[key] { return cached }
+        if let cached = contextCache.playlist(key) { return cached }
+        if contextCache.isUnavailable(key) { throw APIError.unavailable }
 
         // The play-history context URL points at the full playlist endpoint.
         // Fetching it without `fields` pulls a large payload, including
@@ -128,8 +127,8 @@ final class SpotifyAPIClient {
         // repeated refresh/debug sessions. Limit the response to the fields
         // needed by `MochiMixItemMapper.item(from:)`.
         let requestURL = lightweightPlaylistURL(from: href)
-        let playlist: SpotifyPlaylist = try await get(requestURL)
-        playlistCache[key] = playlist
+        let playlist: SpotifyPlaylist = try await getContext(requestURL, cacheKey: key)
+        contextCache.store(playlist: playlist, for: key)
         return playlist
     }
 
@@ -160,17 +159,19 @@ final class SpotifyAPIClient {
     /// tracks from several different real albums).
     func fetchAlbum(at href: URL) async throws -> SpotifyAlbum {
         let key = href.absoluteString
-        if let cached = albumCache[key] { return cached }
-        let album: SpotifyAlbum = try await get(href)
-        albumCache[key] = album
+        if let cached = contextCache.album(key) { return cached }
+        if contextCache.isUnavailable(key) { throw APIError.unavailable }
+        let album: SpotifyAlbum = try await getContext(href, cacheKey: key)
+        contextCache.store(album: album, for: key)
         return album
     }
 
     func fetchArtist(at href: URL) async throws -> SpotifyArtist {
         let key = href.absoluteString
-        if let cached = artistCache[key] { return cached }
-        let artist: SpotifyArtist = try await get(href)
-        artistCache[key] = artist
+        if let cached = contextCache.artist(key) { return cached }
+        if contextCache.isUnavailable(key) { throw APIError.unavailable }
+        let artist: SpotifyArtist = try await getContext(href, cacheKey: key)
+        contextCache.store(artist: artist, for: key)
         return artist
     }
 
@@ -394,6 +395,17 @@ final class SpotifyAPIClient {
         }
 
         return try decoder.decode(T.self, from: data)
+    }
+
+    /// `get`, but a 404/403 is remembered as unavailable (so it's never
+    /// re-requested every refresh) and reported as `.unavailable`.
+    private func getContext<T: Decodable>(_ url: URL, cacheKey: String) async throws -> T {
+        do {
+            return try await get(url)
+        } catch APIError.serverError(let status, _) where status == 404 || status == 403 {
+            contextCache.markUnavailable(cacheKey)
+            throw APIError.unavailable
+        }
     }
 
     private func get<T: Decodable>(_ url: URL, isRetry: Bool = false) async throws -> T {
